@@ -23,6 +23,7 @@ using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using Velopack;
@@ -31,7 +32,7 @@ namespace Simurgh.Dashboard
 {
     /// <summary>
     /// Core application class responsible for bootstrapping the Simurgh Dashboard kiosk.
-    /// Manages the Microsoft.Extensions.Hosting lifecycle, DI pipeline, and global fault tolerance.
+    /// Manages the Microsoft.Extensions.Hosting lifecycle, DI pipeline, NLog infrastructure, and global fault tolerance.
     /// </summary>
     public partial class App : Application
     {
@@ -53,28 +54,53 @@ namespace Simurgh.Dashboard
         /// </summary>
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
-
         // =========================================================================
         // ENTRY POINT
         // =========================================================================
         [STAThread]
         public static void Main(string[] args)
         {
-            VelopackApp.Build().Run();
+            try
+            {
+                // Setup early NLog configuration from BaseDirectory if present
+                var nlogConfigFile = Path.Combine(AppContext.BaseDirectory, "NLog.config");
+                if (File.Exists(nlogConfigFile))
+                {
+                    LogManager.Setup().LoadConfigurationFromFile(nlogConfigFile);
+                }
 
-            var app = new App();
-            app.InitializeComponent();
-            app.Run();
+                _logger.Info("==================================================");
+                _logger.Info("Simurgh Dashboard process initialized (PID: {0})", Environment.ProcessId);
+                _logger.Info("==================================================");
+
+                // Run Velopack hooks as the very first instruction before WPF runtime
+                VelopackApp.Build().Run();
+
+                var app = new App();
+                app.InitializeComponent();
+                app.Run();
+            }
+            catch (Exception ex)
+            {
+                _logger.Fatal(ex, "Unhandled crash during application early initialization.");
+                throw;
+            }
+            finally
+            {
+                // Ensure all logs are flushed to disk if the process terminates
+                LogManager.Shutdown();
+            }
         }
-
 
         /// <summary>
         /// Boots the generic host, starts hosted background workers, and renders the main kiosk shell.
         /// </summary>
         protected override async void OnStartup(StartupEventArgs e)
         {
-            // Establish global UI dispatcher protection immediately.
-            DispatcherUnhandledException += App_DispatcherUnhandledException;
+            base.OnStartup(e);
+
+            // Establish global fault tolerance and exception protection immediately.
+            RegisterGlobalExceptionHooks();
 
             // -------------------------------------------------------------------------
             // SINGLE INSTANCE GUARD (MUTEX)
@@ -138,10 +164,7 @@ namespace Simurgh.Dashboard
 
                 LogManager.Shutdown();
                 Environment.Exit(1);
-                return;
             }
-
-            base.OnStartup(e);
         }
 
         /// <summary>
@@ -211,12 +234,37 @@ namespace Simurgh.Dashboard
         }
 
         /// <summary>
-        /// Handles unhandled exceptions on the UI dispatcher thread to keep the kiosk operational.
+        /// Sets up comprehensive global exception traps for UI, AppDomain, and unobserved tasks.
         /// </summary>
-        private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        private void RegisterGlobalExceptionHooks()
         {
-            _logger.Error(e.Exception, "Unhandled UI dispatcher exception trapped. Preventing application crash.");
-            e.Handled = true;
+            // 1. UI Dispatcher Exceptions (Keeps the UI alive in kiosk mode)
+            DispatcherUnhandledException += (s, e) =>
+            {
+                _logger.Error(e.Exception, "Unhandled UI Dispatcher Exception trapped. Prevented application crash.");
+                e.Handled = true;
+            };
+
+            // 2. AppDomain Unhandled Exceptions (Non-UI threads)
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                if (e.ExceptionObject is Exception ex)
+                {
+                    _logger.Fatal(ex, "AppDomain Unhandled Exception occurred. IsTerminating: {0}", e.IsTerminating);
+                }
+                else
+                {
+                    _logger.Fatal("AppDomain Unhandled Non-Exception Object: {0}", e.ExceptionObject);
+                }
+                LogManager.Flush();
+            };
+
+            // 3. Unobserved Task Exceptions (Async void / unawaited tasks)
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                _logger.Error(e.Exception, "Unobserved Task Exception trapped.");
+                e.SetObserved();
+            };
         }
 
         /// <summary>
@@ -225,7 +273,7 @@ namespace Simurgh.Dashboard
         /// </summary>
         protected override async void OnExit(ExitEventArgs e)
         {
-            _logger.Info("Simurgh Dashboard shutting down. Stopping IHost...");
+            _logger.Info("Simurgh Dashboard shutting down with exit code: {0}. Stopping IHost...", e.ApplicationExitCode);
 
             if (_host != null)
             {
@@ -248,7 +296,9 @@ namespace Simurgh.Dashboard
 
             ReleaseSingleInstanceMutex();
 
+            _logger.Info("Simurgh Dashboard exited cleanly.");
             LogManager.Shutdown();
+
             base.OnExit(e);
         }
 

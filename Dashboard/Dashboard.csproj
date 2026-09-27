@@ -10,13 +10,14 @@
 		<UseWPF>true</UseWPF>
 
 		<!-- Assembly metadata and versioning -->
-		<Version Condition="'$(Version)' == ''">1.0.6</Version>
+		<Version Condition="'$(Version)' == ''">1.0.10</Version>
 		<Authors>Keyhan Babazadeh</Authors>
 		<Company>Simurgh</Company>
 		<Description>Simurgh Dashboard Client Application</Description>
 
 		<!-- Velopack release orchestration variables -->
 		<VelopackId>Simurgh.Dashboard</VelopackId>
+		<Version>1.0.10</Version>
 		<!-- Target destination for delta updates, full packages, and releases -->
 		<VelopackReleaseDir Condition="'$(VelopackReleaseDir)' == ''">$(MSBuildThisFileDirectory)..\Releases</VelopackReleaseDir>
 		<RootNamespace>Simurgh.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
@@ -165,6 +166,9 @@
 			<Generator></Generator>
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="NLog.config">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -186,23 +190,36 @@
 	<!-- Automated Velopack release packaging pipeline triggered post-publish in Release configuration -->
 	<Target Name="VelopackAutoPack" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
 		<PropertyGroup>
-			<!-- Primary WPF executable entrypoint -->
+			<!-- Primary executable entrypoint for the packaged application -->
 			<EntryExeName>$(TargetName).exe</EntryExeName>
+
+			<!-- Releases folder used by Velopack CLI -->
+			<VelopackResolvedReleaseDir>$(VelopackReleaseDir.TrimEnd('\'))</VelopackResolvedReleaseDir>
+			<!-- Separate bundles output folder to prevent recursive locking -->
+			<BundleOutputDir>$(MSBuildThisFileDirectory)..\Bundles</BundleOutputDir>
+			<VelopackBundleZip>$(BundleOutputDir)\$(VelopackId)-$(Version)-bundle.zip</VelopackBundleZip>
 		</PropertyGroup>
 
 		<Message Importance="High" Text="======================================================" />
 		<Message Importance="High" Text="[Velopack] Starting packaging for $(VelopackId) v$(Version)..." />
 		<Message Importance="High" Text="[Velopack] Source Directory: $(PublishDir)" />
-		<Message Importance="High" Text="[Velopack] Release Directory: $(VelopackReleaseDir)" />
+		<Message Importance="High" Text="[Velopack] Release Directory: $(VelopackResolvedReleaseDir)" />
+		<Message Importance="High" Text="[Velopack] Bundle Output Directory: $(BundleOutputDir)" />
 		<Message Importance="High" Text="======================================================" />
 
-		<!-- Ensure target release output directory exists prior to packaging -->
-		<MakeDir Directories="$(VelopackReleaseDir)" Condition="!Exists('$(VelopackReleaseDir)')" />
+		<!-- Ensure target directories exist -->
+		<MakeDir Directories="$(VelopackResolvedReleaseDir)" Condition="!Exists('$(VelopackResolvedReleaseDir)')" />
+		<MakeDir Directories="$(BundleOutputDir)" Condition="!Exists('$(BundleOutputDir)')" />
 
-		<!-- Execute Velopack CLI (vpk pack) to generate setup files and delta packages -->
-		<Exec Command="vpk pack -u $(VelopackId) -v $(Version) -p &quot;$(PublishDir.TrimEnd('\'))&quot; -e $(EntryExeName) -o &quot;$(VelopackReleaseDir.TrimEnd('\'))&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
+		<!-- Execute Velopack CLI (vpk pack) to generate setup files, delta packages, and releases.win.json -->
+		<Exec Command="vpk pack -u $(VelopackId) -v $(Version) -p &quot;$(PublishDir.TrimEnd('\'))&quot; -e $(EntryExeName) -o &quot;$(VelopackResolvedReleaseDir)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
 
-		<Message Importance="High" Text="[Velopack] Packaging completed successfully." />
+		<!-- Package all release assets into a standalone zip bundle outside the release directory -->
+		<ZipDirectory SourceDirectory="$(VelopackResolvedReleaseDir)" DestinationFile="$(VelopackBundleZip)" Overwrite="true" />
+
+		<Message Importance="High" Text="======================================================" />
+		<Message Importance="High" Text="[Velopack] Bundle Created Successfully: $(VelopackBundleZip)" />
+		<Message Importance="High" Text="======================================================" />
 	</Target>
 
 </Project>
