@@ -10,18 +10,20 @@
 		<UseWPF>true</UseWPF>
 
 		<!-- Assembly metadata and versioning -->
-		<Version Condition="'$(Version)' == ''">1.0.10</Version>
+		<Version Condition="'$(Version)' == ''">1.0.11</Version>
 		<Authors>Keyhan Babazadeh</Authors>
 		<Company>Simurgh</Company>
 		<Description>Simurgh Dashboard Client Application</Description>
 
 		<!-- Velopack release orchestration variables -->
 		<VelopackId>Simurgh.Dashboard</VelopackId>
-		<Version>1.0.10</Version>
+		<Version>1.0.11</Version>
 		<!-- Target destination for delta updates, full packages, and releases -->
-		<VelopackReleaseDir Condition="'$(VelopackReleaseDir)' == ''">$(MSBuildThisFileDirectory)..\Releases</VelopackReleaseDir>
+		<VelopackReleaseDir Condition="'$(VelopackReleaseDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\Releases'))</VelopackReleaseDir>
+		<BundleOutputDir Condition="'$(BundleOutputDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\Bundles'))</BundleOutputDir>		
 		<RootNamespace>Simurgh.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
 		<AssemblyName>Simurgh.$(MSBuildProjectName)</AssemblyName>
+		<ApplicationIcon>Simurgh (Variant2) Black Circullar.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<!-- Excluded view and repository directories from compilation -->
@@ -74,6 +76,10 @@
 
 	<ItemGroup>
 		<Page Remove="Themes\MarqueeItemsControl.xaml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="Simurgh (Variant2) Black Circullar.ico" />
 	</ItemGroup>
 
 	<!-- Embedded UI Resources (Fonts and Skin Assets) -->
@@ -177,39 +183,38 @@
 
 	<ItemGroup>
 	  <Reference Include="Watchdog.Agent">
-	    <HintPath>..\..\..\Simurgh-Watchdog\Watchdog\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Agent.dll</HintPath>
+	    <HintPath>..\..\..\Simurgh-Watchdog\Application\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Agent.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Watchdog.Agent.Host">
-	    <HintPath>..\..\..\Simurgh-Watchdog\Watchdog\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Agent.Host.dll</HintPath>
+	    <HintPath>..\..\..\Simurgh-Watchdog\Application\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Agent.Host.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Watchdog.Contracts">
-	    <HintPath>..\..\..\Simurgh-Watchdog\Watchdog\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Contracts.dll</HintPath>
+	    <HintPath>..\..\..\Simurgh-Watchdog\Application\Watchdog.Agent.Host\bin\Release\net9.0\Watchdog.Contracts.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 
-	<!-- Automated Velopack release packaging pipeline triggered post-publish in Release configuration -->
+		<!-- Automated Velopack release packaging pipeline triggered post-publish in Release configuration -->
 	<Target Name="VelopackAutoPack" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
 		<PropertyGroup>
 			<!-- Primary executable entrypoint for the packaged application -->
 			<EntryExeName>$(TargetName).exe</EntryExeName>
 
-			<!-- Releases folder used by Velopack CLI -->
+			<!-- Releases and Bundles folder resolved -->
 			<VelopackResolvedReleaseDir>$(VelopackReleaseDir.TrimEnd('\'))</VelopackResolvedReleaseDir>
-			<!-- Separate bundles output folder to prevent recursive locking -->
-			<BundleOutputDir>$(MSBuildThisFileDirectory)..\Bundles</BundleOutputDir>
-			<VelopackBundleZip>$(BundleOutputDir)\$(VelopackId)-$(Version)-bundle.zip</VelopackBundleZip>
+			<BundleOutputDirResolved>$(BundleOutputDir.TrimEnd('\'))</BundleOutputDirResolved>
+			<VelopackBundleZip>$(BundleOutputDirResolved)\$(VelopackId)-$(Version)-bundle.zip</VelopackBundleZip>
 		</PropertyGroup>
 
 		<Message Importance="High" Text="======================================================" />
 		<Message Importance="High" Text="[Velopack] Starting packaging for $(VelopackId) v$(Version)..." />
 		<Message Importance="High" Text="[Velopack] Source Directory: $(PublishDir)" />
 		<Message Importance="High" Text="[Velopack] Release Directory: $(VelopackResolvedReleaseDir)" />
-		<Message Importance="High" Text="[Velopack] Bundle Output Directory: $(BundleOutputDir)" />
+		<Message Importance="High" Text="[Velopack] Bundle Output Directory: $(BundleOutputDirResolved)" />
 		<Message Importance="High" Text="======================================================" />
 
 		<!-- Ensure target directories exist -->
 		<MakeDir Directories="$(VelopackResolvedReleaseDir)" Condition="!Exists('$(VelopackResolvedReleaseDir)')" />
-		<MakeDir Directories="$(BundleOutputDir)" Condition="!Exists('$(BundleOutputDir)')" />
+		<MakeDir Directories="$(BundleOutputDirResolved)" Condition="!Exists('$(BundleOutputDirResolved)')" />
 
 		<!-- Execute Velopack CLI (vpk pack) to generate setup files, delta packages, and releases.win.json -->
 		<Exec Command="vpk pack -u $(VelopackId) -v $(Version) -p &quot;$(PublishDir.TrimEnd('\'))&quot; -e $(EntryExeName) -o &quot;$(VelopackResolvedReleaseDir)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
@@ -221,5 +226,6 @@
 		<Message Importance="High" Text="[Velopack] Bundle Created Successfully: $(VelopackBundleZip)" />
 		<Message Importance="High" Text="======================================================" />
 	</Target>
+
 
 </Project>

@@ -1,16 +1,14 @@
 ﻿// Path: Simurgh.Dashboard/HealthCheck/Services/ServiceCollectionExtensions.cs
 
+using System.Windows.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Simurgh.Dashboard.Watchdog.Services;
 using Simurgh.Dashboard.Watchdog.ViewModels;
 using Simurgh.Watchdog.Agent;
-using Simurgh.Watchdog.Contracts.Interfaces;
-using System.Windows.Threading;
 using Watchdog.Agent.Host;
 
-namespace Simurgh.Dashboard.HealthCheck.Services;
+namespace Simurgh.Dashboard.Watchdog.Services;
 
 /// <summary>
 /// Service registration extensions for bridging Watchdog Agent with WPF Dashboard UI.
