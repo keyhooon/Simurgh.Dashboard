@@ -144,16 +144,16 @@
 	<!-- NuGet Package Dependencies -->
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.20" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.20" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.20" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="9.0.20" />
 		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.20" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
 		<PackageReference Include="NLog.Extensions.Logging" Version="6.2.0" />
 		<PackageReference Include="StreamJsonRpc" Version="2.25.29" />
-		<PackageReference Include="System.ServiceModel.Syndication" Version="10.0.11" />
+		<PackageReference Include="System.ServiceModel.Syndication" Version="9.0.20" />
 		<!-- Velopack update manager and installer integration -->
 		<PackageReference Include="Velopack" Version="1.2.158" />
 	</ItemGroup>
