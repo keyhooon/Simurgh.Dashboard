@@ -45,7 +45,7 @@
         <Setter Property="HeaderIconSize" Value="16" />
 
         <Setter Property="HeaderPadding" Value="14,10" />
-        <Setter Property="ContentPadding" Value="10" />
+        <Setter Property="ContentPadding" Value="0" />
         <Setter Property="FooterPadding" Value="12,8" />
 
         <Setter Property="CornerRadius" Value="5" />
@@ -58,36 +58,26 @@
 
                 <ControlTemplate TargetType="{x:Type local1:WidgetFrame}">
 
-                    <Grid
-                        x:Name="PART_TemplateRoot"
-                        SnapsToDevicePixels="True"
-                        UseLayoutRounding="True">
-
-
-                        <Border
-                            x:Name="PART_Surface"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="{TemplateBinding CornerRadius}"
-                            SnapsToDevicePixels="True" />
-
-                        <!--  =================================================  -->
-                        <!--  Frame Layer  -->
-                        <!--  Only one frame asset is rendered at a time  -->
-                        <!--  =================================================  -->
-
+                    <Grid>
                         <local1:NineSliceBorder
-                            x:Name="PART_Frame"
-                            Margin="-25"
+                            x:Name="WidgetFrame_Frame"
+                            Grid.RowSpan="3"
+                            Margin="-30"
                             IsHitTestVisible="False"
                             RenderOptions.BitmapScalingMode="Fant"
-                            SliceThickness="50,50,50,50"
+                            SliceThickness="60"
                             Source="{StaticResource ImgPanelRoundedRaised}" />
 
                         <!--  =================================================  -->
                         <!--  Content Host  -->
                         <!--  =================================================  -->
 
-                        <Grid x:Name="PART_LayoutRoot" Margin="0">
+                        <Grid
+                            x:Name="WidgetFrame_LayoutRoot"
+                            Margin="20"
+                            SnapsToDevicePixels="True"
+                            UseLayoutRounding="True">
+
 
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -99,81 +89,72 @@
                             <!--  Header  -->
                             <!--  =============================================  -->
 
-                            <Border
-                                x:Name="PART_HeaderBorder"
-                                Grid.Row="0"
-                                Padding="{TemplateBinding HeaderPadding}"
-                                Style="{StaticResource PanelHeaderBorderStyle}">
 
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
 
-                                    <Path
-                                        x:Name="PART_HeaderIcon"
-                                        Grid.Column="0"
-                                        Width="{TemplateBinding HeaderIconSize}"
-                                        Height="{TemplateBinding HeaderIconSize}"
-                                        Data="{TemplateBinding HeaderIconGeometry}"
-                                        Fill="{TemplateBinding HeaderIconBrush}"
-                                        Style="{StaticResource WidgetFrameHeaderIconStyle}" />
+                            <Grid x:Name="WidgetFrame_HeaderBorder" Margin="{TemplateBinding HeaderPadding}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                                    <ContentPresenter
-                                        x:Name="PART_HeaderPresenter"
-                                        Grid.Column="1"
-                                        Content="{TemplateBinding Header}"
-                                        ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                        ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}"
-                                        Style="{StaticResource WidgetFrameHeaderPresenterStyle}" />
+                                <Path
+                                    x:Name="PART_HeaderIcon"
+                                    Grid.Column="0"
+                                    Width="{TemplateBinding HeaderIconSize}"
+                                    Height="{TemplateBinding HeaderIconSize}"
+                                    Data="{TemplateBinding HeaderIconGeometry}"
+                                    Fill="{TemplateBinding HeaderIconBrush}"
+                                    Style="{StaticResource WidgetFrameHeaderIconStyle}" />
 
-                                    <ContentPresenter
-                                        x:Name="PART_HeaderBadgePresenter"
-                                        Grid.Column="2"
-                                        Content="{TemplateBinding HeaderBadgeContent}"
-                                        ContentTemplate="{TemplateBinding HeaderBadgeTemplate}"
-                                        ContentTemplateSelector="{TemplateBinding HeaderBadgeTemplateSelector}"
-                                        Style="{StaticResource WidgetFrameBadgePresenterStyle}" />
-                                </Grid>
-                            </Border>
+                                <ContentPresenter
+                                    x:Name="PART_HeaderPresenter"
+                                    Grid.Column="1"
+                                    Content="{TemplateBinding Header}"
+                                    ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}"
+                                    Style="{StaticResource WidgetFrameHeaderPresenterStyle}" />
+
+                                <ContentPresenter
+                                    x:Name="PART_HeaderBadgePresenter"
+                                    Grid.Column="2"
+                                    Content="{TemplateBinding HeaderBadgeContent}"
+                                    ContentTemplate="{TemplateBinding HeaderBadgeTemplate}"
+                                    ContentTemplateSelector="{TemplateBinding HeaderBadgeTemplateSelector}"
+                                    Style="{StaticResource WidgetFrameBadgePresenterStyle}" />
+                            </Grid>
 
                             <!--  =============================================  -->
                             <!--  Content  -->
                             <!--  =============================================  -->
 
-                            <Border
-                                Grid.Row="1"
-                                Margin="0,0"
-                                Padding="{TemplateBinding ContentPadding}"
-                                Background="Transparent">
 
-                                <ContentPresenter
-                                    x:Name="PART_ContentPresenter"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                    ContentSource="Content"
-                                    Style="{StaticResource WidgetFrameContentPresenterStyle}" />
-                            </Border>
+
+                            <ContentPresenter
+                                x:Name="WidgetFrame_ContentPresenter"
+                                Grid.Row="1"
+                                Margin="{TemplateBinding ContentPadding}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                ClipToBounds="False"
+                                ContentSource="Content"
+                                Style="{StaticResource WidgetFrameContentPresenterStyle}" />
+
 
                             <!--  =============================================  -->
                             <!--  Footer  -->
                             <!--  =============================================  -->
 
-                            <Border
-                                x:Name="PART_FooterBorder"
-                                Grid.Row="2"
-                                Padding="{TemplateBinding FooterPadding}"
-                                Style="{StaticResource WidgetFrameFooterBorderStyle}">
 
-                                <ContentPresenter
-                                    x:Name="PART_FooterPresenter"
-                                    Content="{TemplateBinding FooterContent}"
-                                    ContentTemplate="{TemplateBinding FooterTemplate}"
-                                    ContentTemplateSelector="{TemplateBinding FooterTemplateSelector}"
-                                    Style="{StaticResource WidgetFrameFooterPresenterStyle}" />
-                            </Border>
+                            <ContentPresenter
+                                x:Name="WidgetFrame_FooterPresenter"
+                                Grid.Row="2"
+                                Margin="{TemplateBinding FooterPadding}"
+                                Content="{TemplateBinding FooterContent}"
+                                ContentTemplate="{TemplateBinding FooterTemplate}"
+                                ContentTemplateSelector="{TemplateBinding FooterTemplateSelector}"
+                                Style="{StaticResource WidgetFrameFooterPresenterStyle}" />
+
 
                         </Grid>
 
@@ -190,7 +171,7 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="Header" Value="{x:Null}">
-                            <Setter TargetName="PART_HeaderBorder" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="WidgetFrame_HeaderBorder" Property="Visibility" Value="Collapsed" />
                         </Trigger>
 
                         <Trigger Property="HeaderIconGeometry" Value="{x:Null}">
@@ -206,24 +187,24 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="ShowFooter" Value="False">
-                            <Setter TargetName="PART_FooterBorder" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="WidgetFrame_FooterPresenter" Property="Visibility" Value="Collapsed" />
                         </Trigger>
 
                         <Trigger Property="FooterContent" Value="{x:Null}">
-                            <Setter TargetName="PART_FooterBorder" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="WidgetFrame_FooterPresenter" Property="Visibility" Value="Collapsed" />
                         </Trigger>
 
                         <!--  =================================================  -->
                         <!--  Separator Control  -->
                         <!--  =================================================  -->
 
-                        <Trigger Property="ShowHeaderSeparator" Value="False">
-                            <Setter TargetName="PART_HeaderBorder" Property="BorderThickness" Value="0" />
+                        <!--<Trigger Property="ShowHeaderSeparator" Value="False">
+                            <Setter TargetName="WidgetFrame_HeaderBorder" Property="BorderThickness" Value="0" />
                         </Trigger>
 
                         <Trigger Property="ShowFooterSeparator" Value="False">
-                            <Setter TargetName="PART_FooterBorder" Property="BorderThickness" Value="0" />
-                        </Trigger>
+                            <Setter TargetName="WidgetFrame_FooterPresenter" Property="BorderThickness" Value="0" />
+                        </Trigger>-->
 
                         <!--  =================================================  -->
                         <!--  Disabled State  -->
@@ -238,9 +219,9 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="FrameVariant" Value="{x:Static controls:WidgetFrameVariant.RoundedRaised}">
-                            <Setter TargetName="PART_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedRaised}" />
-                            <Setter TargetName="PART_Frame" Property="SliceThickness" Value="75,75,75,75" />
-                            <Setter TargetName="PART_LayoutRoot" Property="Margin" Value="12" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedRaised}" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="SliceThickness" Value="75,75,75,75" />
+                            <Setter TargetName="WidgetFrame_LayoutRoot" Property="Margin" Value="12" />
                         </Trigger>
 
                         <!--  =================================================  -->
@@ -248,9 +229,9 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="FrameVariant" Value="{x:Static controls:WidgetFrameVariant.RoundedSunken}">
-                            <Setter TargetName="PART_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedSunken}" />
-                            <Setter TargetName="PART_Frame" Property="SliceThickness" Value="75,75,75,75" />
-                            <Setter TargetName="PART_LayoutRoot" Property="Margin" Value="12" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedSunken}" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="SliceThickness" Value="75,75,75,75" />
+                            <Setter TargetName="WidgetFrame_LayoutRoot" Property="Margin" Value="12" />
                         </Trigger>
 
                         <!--  =================================================  -->
@@ -258,9 +239,9 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="FrameVariant" Value="{x:Static controls:WidgetFrameVariant.RoundedRaisedLow}">
-                            <Setter TargetName="PART_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedRaisedLow}" />
-                            <Setter TargetName="PART_Frame" Property="SliceThickness" Value="75,75,75,75" />
-                            <Setter TargetName="PART_LayoutRoot" Property="Margin" Value="10" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedRaisedLow}" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="SliceThickness" Value="75,75,75,75" />
+                            <Setter TargetName="WidgetFrame_LayoutRoot" Property="Margin" Value="10" />
                         </Trigger>
 
                         <!--  =================================================  -->
@@ -268,9 +249,9 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="FrameVariant" Value="{x:Static controls:WidgetFrameVariant.RoundedSunkenLow}">
-                            <Setter TargetName="PART_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedSunkenLow}" />
-                            <Setter TargetName="PART_Frame" Property="SliceThickness" Value="75,75,75,75" />
-                            <Setter TargetName="PART_LayoutRoot" Property="Margin" Value="10" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="Source" Value="{StaticResource ImgPanelRoundedSunkenLow}" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="SliceThickness" Value="75,75,75,75" />
+                            <Setter TargetName="WidgetFrame_LayoutRoot" Property="Margin" Value="10" />
                         </Trigger>
 
                         <!--  =================================================  -->
@@ -278,9 +259,9 @@
                         <!--  =================================================  -->
 
                         <Trigger Property="FrameVariant" Value="{x:Static controls:WidgetFrameVariant.SquareSunken}">
-                            <Setter TargetName="PART_Frame" Property="Source" Value="{StaticResource ImgPanelSquareSunken}" />
-                            <Setter TargetName="PART_Frame" Property="SliceThickness" Value="115,115,115,115" />
-                            <Setter TargetName="PART_LayoutRoot" Property="Margin" Value="14" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="Source" Value="{StaticResource ImgPanelSquareSunken}" />
+                            <Setter TargetName="WidgetFrame_Frame" Property="SliceThickness" Value="115,115,115,115" />
+                            <Setter TargetName="WidgetFrame_LayoutRoot" Property="Margin" Value="14" />
                         </Trigger>
 
                     </ControlTemplate.Triggers>

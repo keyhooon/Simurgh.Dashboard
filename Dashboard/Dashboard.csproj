@@ -150,6 +150,7 @@
 	<!-- NuGet Package Dependencies -->
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+		<PackageReference Include="MahApps.Metro.IconPacks.Lucide" Version="6.2.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.20" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.20" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.20" />
