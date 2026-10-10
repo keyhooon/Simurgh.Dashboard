@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Simurgh.Dashboard.Sensors.Contracts;
 using Simurgh.Dashboard.Sensors.Options;
 using Simurgh.Dashboard.Sensors.ViewModels;
+using System.Configuration;
 
 namespace Simurgh.Dashboard.Sensors.Services;
 
@@ -22,7 +23,6 @@ public static class SensorServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The target service collection.</param>
     /// <param name="configuration">The root application configuration.</param>
-    /// <param name="sectionName">Optional custom section name in configuration. Defaults to "SensorsOptions".</param>
     /// <returns>The same <see cref="IServiceCollection"/> for fluent chaining.</returns>
     public static IServiceCollection AddSensorSubsystem(
         this IServiceCollection services,
@@ -53,39 +53,20 @@ public static class SensorServiceCollectionExtensions
         services.TryAddTransient<Func<Models.MeasurableValueEntity, MeasurableValueViewModel>>(sp =>
             entity => new MeasurableValueViewModel(entity));
 
-        return services;
-    }
+        // 1. Modbus Options
+        services.AddOptions<ModbusMasterOptions>()
+            .Bind(configuration.GetSection(ModbusMasterOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-    /// <summary>
-    /// Overload for registering the sensor subsystem with direct programmatic options configuration.
-    /// </summary>
-    /// <param name="services">The target service collection.</param>
-    /// <param name="configureOptions">Delegate to configure <see cref="SensorsOptions"/>.</param>
-    /// <returns>The same <see cref="IServiceCollection"/> for fluent chaining.</returns>
-    public static IServiceCollection AddSensorSubsystem(
-        this IServiceCollection services,
-        Action<SensorsOptions> configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configureOptions);
+        // 2. Modbus Master Service (Registered as Singleton)
+        services.AddSingleton<IModbusMasterService, ModbusMasterService>();
 
-        // 1. Programmatic Options Binding
-        services.Configure(configureOptions);
-
-        // 2. Core Accessor Layer
-        services.TryAddSingleton<ISensorAccessor, SensorAccessor>();
-        services.TryAddSingleton<ISensorController, SensorController>();
-
-
-        // 4. MVVM Presentation Layer
-        services.TryAddSingleton<SensorsRootViewModel>();
-
-        services.TryAddTransient<Func<Models.SensorEntity, SensorViewModel>>(sp =>
-            entity => new SensorViewModel(entity));
-
-        services.TryAddTransient<Func<Models.MeasurableValueEntity, MeasurableValueViewModel>>(sp =>
-            entity => new MeasurableValueViewModel(entity));
+        // 3. Telemetry Polling Background Worker
+        services.AddHostedService<ModbusTelemetryPollingWorker>();
 
         return services;
     }
+
+    
 }

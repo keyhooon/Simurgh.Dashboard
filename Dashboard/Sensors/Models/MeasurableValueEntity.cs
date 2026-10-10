@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using Simurgh.Dashboard.Sensors.Options;
@@ -14,8 +15,8 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
 {
     #region Constants & Fallbacks
 
-    private const string DefaultValueFormat = "F1";
-    private const string DefaultFormattedValue = "--";
+    private const string DefaultValueFormat = "000.0;-00.0";
+    private const string FallbackFormattedValue = "---.-";
 
     private static readonly SolidColorBrush DefaultDigitBrush = (SolidColorBrush)new BrushConverter().ConvertFromInvariantString("#FF7878")!;
     private static readonly SolidColorBrush DefaultPlaceholderBrush = (SolidColorBrush)new BrushConverter().ConvertFromInvariantString("#2D263238")!;
@@ -32,10 +33,11 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
     #region Backing Fields
 
     private int _index;
-    private string _label;
+    private string _label = string.Empty;
     private SensorType _type = SensorType.Temperature;
     private string _unit = string.Empty;
     private string _valueFormat = DefaultValueFormat;
+    private string _defaultFormattedValue = FallbackFormattedValue;
     private double? _lowWarningThreshold;
     private double? _highWarningThreshold;
     private double? _lowCriticalThreshold;
@@ -43,11 +45,17 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
     private Brush _digitBrush = DefaultDigitBrush;
     private Brush _placeholderBrush = DefaultPlaceholderBrush;
 
-    private double _realValue;
-    private string _formattedValue = DefaultFormattedValue;
+    private double _realValue = double.NaN;
+    private string _formattedValue = FallbackFormattedValue;
     private bool _isInWarning;
     private bool _isInCritical;
     private DateTimeOffset _lastUpdated = DateTimeOffset.UtcNow;
+
+    private ushort? _modbusAddress;
+    private ModbusRegisterType _registerType = ModbusRegisterType.HoldingRegister;
+    private ModbusDataType _dataType = ModbusDataType.UInt16;
+    private double _scaleFactor = 1.0;
+    private double _offset;
 
     #endregion
 
@@ -71,7 +79,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         set => SetProperty(ref _index, value);
     }
 
-
     #endregion
 
     #region 2. Configuration State
@@ -81,7 +88,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         get => _label;
         set => SetProperty(ref _label, value);
     }
-
 
     /// <summary>
     /// Sensor category / physical metric classification.
@@ -102,12 +108,30 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Numerical formatting specifier applied to raw telemetry data (e.g. "F1", "F2", "N0").
+    /// Numerical formatting specifier applied to raw telemetry data (e.g. "000.0;-00.0", "000;-00").
     /// </summary>
     public string ValueFormat
     {
         get => _valueFormat;
-        set => SetProperty(ref _valueFormat, value);
+        set
+        {
+            if (SetProperty(ref _valueFormat, value))
+            {
+                _defaultFormattedValue = GenerateDefaultFormattedValue(value);
+                OnPropertyChanged(nameof(DefaultFormattedValue));
+                // Re-evaluate format when pattern changes at runtime
+                EvaluateState(_realValue);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Fallback formatted string displayed before valid telemetry arrives (e.g. "---.-").
+    /// </summary>
+    public string DefaultFormattedValue
+    {
+        get => _defaultFormattedValue;
+        set => SetProperty(ref _defaultFormattedValue, value);
     }
 
     /// <summary>
@@ -221,7 +245,61 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         set => SetProperty(ref _lastUpdated, value);
     }
 
+    #endregion
 
+    #region 4. Modbus Channel Mapping
+
+    /// <summary>
+    /// Gets or sets the Modbus register address (zero-based protocol address).
+    /// A null value means this channel is not mapped to any Modbus register.
+    /// </summary>
+    public ushort? ModbusAddress
+    {
+        get => _modbusAddress;
+        set => SetProperty(ref _modbusAddress, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Modbus register area used for polling (Holding, Input, Coil, DiscreteInput).
+    /// </summary>
+    public ModbusRegisterType RegisterType
+    {
+        get => _registerType;
+        set => SetProperty(ref _registerType, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the raw wire data type of the register (Int16, UInt16, Float32, ...).
+    /// Determines how many registers are read and how the raw bytes are decoded.
+    /// </summary>
+    public ModbusDataType DataType
+    {
+        get => _dataType;
+        set => SetProperty(ref _dataType, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the multiplicative factor converting raw register values into engineering units.
+    /// </summary>
+    public double ScaleFactor
+    {
+        get => _scaleFactor;
+        set => SetProperty(ref _scaleFactor, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the additive offset applied after scaling (engineeringValue = raw * scale + offset).
+    /// </summary>
+    public double Offset
+    {
+        get => _offset;
+        set => SetProperty(ref _offset, value);
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether this channel is bound to a Modbus register and should be polled.
+    /// </summary>
+    public bool HasModbusMapping => _modbusAddress.HasValue;
 
     #endregion
 
@@ -250,31 +328,46 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Full parameterized constructor for domain instantiation.
+    /// Full parameterized constructor for domain instantiation including Modbus wire mappings.
     /// </summary>
     public MeasurableValueEntity(
         int index,
         SensorType type,
         string? unit,
         string? valueFormat = DefaultValueFormat,
+        string? label = null,
         double? lowWarningThreshold = null,
         double? highWarningThreshold = null,
         double? lowCriticalThreshold = null,
         double? highCriticalThreshold = null,
         Brush? digitBrush = null,
-        Brush? placeholderBrush = null)
+        Brush? placeholderBrush = null,
+        ushort? modbusAddress = null,
+        ModbusRegisterType registerType = ModbusRegisterType.HoldingRegister,
+        ModbusDataType dataType = ModbusDataType.Int16,
+        double scaleFactor = 1.0,
+        double offset = 0.0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         _index = index;
         _type = type;
         _unit = unit ?? string.Empty;
         _valueFormat = string.IsNullOrWhiteSpace(valueFormat) ? DefaultValueFormat : valueFormat;
+        _label = label ?? string.Empty;
         _lowWarningThreshold = lowWarningThreshold;
         _highWarningThreshold = highWarningThreshold;
         _lowCriticalThreshold = lowCriticalThreshold;
         _highCriticalThreshold = highCriticalThreshold;
         _digitBrush = FreezeOrFallback(digitBrush, DefaultDigitBrush);
         _placeholderBrush = FreezeOrFallback(placeholderBrush, DefaultPlaceholderBrush);
+
+        // Modbus mappings
+        _modbusAddress = modbusAddress;
+        _registerType = registerType;
+        _dataType = dataType;
+        _scaleFactor = scaleFactor;
+        _offset = offset;
+
         _lastUpdated = DateTimeOffset.UtcNow;
     }
 
@@ -291,15 +384,23 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
 
         Type = options.Type;
         Unit = options.Unit ?? string.Empty;
-        ValueFormat = string.IsNullOrWhiteSpace(options.FormattedValue) ? DefaultValueFormat : options.FormattedValue;
+        ValueFormat = string.IsNullOrWhiteSpace(options.ValueFormat) ? DefaultValueFormat : options.ValueFormat;
+        DefaultFormattedValue = GenerateDefaultFormattedValue(ValueFormat);
+
         LowWarningThreshold = options.LowWarningThreshold;
         HighWarningThreshold = options.HighWarningThreshold;
         LowCriticalThreshold = options.LowCriticalThreshold;
         HighCriticalThreshold = options.HighCriticalThreshold;
 
-        
         DigitBrush = ParseBrushOrDefault(options.DigitColorHex, DefaultDigitBrush);
         PlaceholderBrush = ParseBrushOrDefault(options.PlaceholderColorHex, DefaultPlaceholderBrush);
+
+        // Modbus channel mapping (address, register area, wire data type, and scaling)
+        ModbusAddress = options.ModbusAddress;
+        RegisterType = options.RegisterType;
+        DataType = options.DataType;
+        ScaleFactor = options.ScaleFactor;
+        Offset = options.Offset;
 
         EvaluateState(RealValue);
 
@@ -318,10 +419,26 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
     private void EvaluateState(double value)
     {
         RealValue = value;
-        FormattedValue = double.IsNaN(value) ? DefaultFormattedValue : value.ToString(ValueFormat);
 
-        var isLowCritical = value <= LowCriticalThreshold;
-        var isHighCritical = value >= HighCriticalThreshold;
+        if (double.IsNaN(value))
+        {
+            FormattedValue = DefaultFormattedValue;
+            IsInCritical = false;
+            IsInWarning = false;
+            return;
+        }
+
+        try
+        {
+            FormattedValue = value.ToString(ValueFormat, CultureInfo.InvariantCulture);
+        }
+        catch (FormatException)
+        {
+            FormattedValue = value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        var isLowCritical = LowCriticalThreshold.HasValue && value <= LowCriticalThreshold.Value;
+        var isHighCritical = HighCriticalThreshold.HasValue && value >= HighCriticalThreshold.Value;
         IsInCritical = isLowCritical || isHighCritical;
 
         if (IsInCritical)
@@ -330,8 +447,8 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         }
         else
         {
-            var isLowWarning = value <= LowWarningThreshold;
-            var isHighWarning = value >= HighWarningThreshold;
+            var isLowWarning = LowWarningThreshold.HasValue && value <= LowWarningThreshold.Value;
+            var isHighWarning = HighWarningThreshold.HasValue && value >= HighWarningThreshold.Value;
             IsInWarning = isLowWarning || isHighWarning;
         }
     }
@@ -340,14 +457,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
 
     #region Property Changed Helpers
 
-    /// <summary>
-    /// Compares field value with incoming value, updates field if changed, and raises <see cref="PropertyChanged"/>.
-    /// </summary>
-    /// <typeparam name="T">Type of the target property.</typeparam>
-    /// <param name="field">Reference to the backing field.</param>
-    /// <param name="value">New value to set.</param>
-    /// <param name="propertyName">Auto-populated property name from caller.</param>
-    /// <returns>True if value changed and notification was fired; otherwise false.</returns>
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
@@ -360,10 +469,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         return true;
     }
 
-    /// <summary>
-    /// Raises the <see cref="PropertyChanged"/> event for binding sync.
-    /// </summary>
-    /// <param name="propertyName">Name of the changed property.</param>
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -373,9 +478,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
 
     #region Helper Methods
 
-    /// <summary>
-    /// Parses a hexadecimal color code into a frozen <see cref="Brush"/>, returning fallback on failure.
-    /// </summary>
     private static Brush ParseBrushOrDefault(string? hexColor, Brush fallback)
     {
         if (string.IsNullOrWhiteSpace(hexColor))
@@ -400,9 +502,6 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
         return fallback;
     }
 
-    /// <summary>
-    /// Ensures brushes are frozen and safe across rendering and background worker threads.
-    /// </summary>
     private static Brush FreezeOrFallback(Brush? brush, Brush fallback)
     {
         var target = brush ?? fallback;
@@ -421,6 +520,31 @@ public sealed class MeasurableValueEntity : INotifyPropertyChanged
 
         return fallback;
     }
+
+    /// <summary>
+    /// Derives the placeholder display pattern (e.g. "---.-") directly from the format specifier
+    /// by preserving separators and replacing numeric placeholders with dashes.
+    /// </summary>
+    private static string GenerateDefaultFormattedValue(string? format)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+        {
+            return "---.-";
+        }
+
+        // If format contains section separators (e.g. "000.0;-00.0"), extract the positive section
+        var positiveFormat = format.Split(';')[0];
+
+        var chars = positiveFormat.Select(c => c switch
+        {
+            '0' or '#' => '-',
+            '.' => '.',
+            _ => c
+        }).ToArray();
+
+        return new string(chars);
+    }
+
 
     #endregion
 }

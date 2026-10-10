@@ -13,14 +13,9 @@ namespace Simurgh.Dashboard.Sensors.Services;
 /// Orchestrates sensor state transitions, telemetry ingestion, and configuration.
 /// Exposes direct asynchronous methods suitable for RPC dispatching and local domain consumption.
 /// </summary>
-public sealed class SensorController : ISensorController
+public sealed class SensorController(ISensorAccessor sensorAccessor) : ISensorController
 {
-    private readonly ISensorAccessor _sensorAccessor;
-
-    public SensorController(ISensorAccessor sensorAccessor)
-    {
-        _sensorAccessor = sensorAccessor ?? throw new ArgumentNullException(nameof(sensorAccessor));
-    }
+    private readonly ISensorAccessor _sensorAccessor = sensorAccessor ?? throw new ArgumentNullException(nameof(sensorAccessor));
 
     /// <inheritdoc />
     public Task UpdateStateAsync(SensorStateParams parameters, CancellationToken cancellationToken = default)

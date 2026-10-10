@@ -22,6 +22,8 @@
             DigitBrush="{Binding StatusBrush}"
             IconData="{Binding Type, Converter={converters:SensorIconConverter}}"
             Label="{Binding Label}"
+            PlaceholderBrush="{Binding PlaceholderBrush}"
+            PlaceholderText="{Binding PlaceholderValue}"
             Unit="{Binding Unit}"
             ValueText="{Binding FormattedValue}" />
     </DataTemplate>

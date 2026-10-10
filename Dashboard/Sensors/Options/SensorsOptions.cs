@@ -12,4 +12,6 @@ public sealed class SensorsOptions
     /// List of configured sensor modules.
     /// </summary>
     public List<SensorOptions> Sensors { get; set; } = [];
+
+    public ModbusMasterOptions ModbusMaster { get; set; } = new ModbusMasterOptions();
 }

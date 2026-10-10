@@ -44,7 +44,10 @@ public enum SensorType : ushort
     TotalVolatileOrganicCompounds = 106,
 
     [Description("Differential Room Overpressure / Cascade Barrier")]
-    DifferentialPressure = 107,
+    RoomDifferentialPressure = 107,
+
+    [Description("Heppa Filter Differential Pressure")]
+    FilterDifferentialPressure = 108,
 
     // =========================================================================
     // 0x0200 - 0x02FF: MEDICAL, LIFE-SUPPORT & PHYSIOLOGICAL (200 - 299)
@@ -73,7 +76,7 @@ public enum SensorType : ushort
     MedicalGasO2 = 206,
 
     [Description("Carbon Monoxide Gas (CO)")]
-    MedicalGasCO = 207,
+    MedicalGasCO2 = 207,
 
     [Description("Instrument Air / High Pressure (10 BAR)")]
     MedicalGas10Bar = 208,

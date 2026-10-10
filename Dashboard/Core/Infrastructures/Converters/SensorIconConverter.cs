@@ -54,7 +54,8 @@ public sealed class SensorIconConverter : MarkupExtension, IValueConverter
             SensorType.AirQuality => "IconAirQuality",
             SensorType.CarbonDioxide => "IconCarbonDioxide",
             SensorType.TotalVolatileOrganicCompounds => "IconTotalVolatileOrganicCompounds",
-            SensorType.DifferentialPressure => "IconDifferentialPressure",
+            SensorType.RoomDifferentialPressure => "IconRoomDifferentialPressure",
+            SensorType.FilterDifferentialPressure => "IconHepaFilterClogPressure",
 
             // =========================================================================
             // MEDICAL, LIFE-SUPPORT & PHYSIOLOGICAL (200 - 299)
@@ -66,7 +67,7 @@ public sealed class SensorIconConverter : MarkupExtension, IValueConverter
             SensorType.MedicalGasPressure => "IconMedicalGasPressure",
             SensorType.AnestheticAgent => "IconAnestheticAgent",
             SensorType.MedicalGasO2 => "IconMedicalGasO2",
-            SensorType.MedicalGasCO => "IconMedicalGasCO",
+            SensorType.MedicalGasCO2 => "IconMedicalGasCO2",
             SensorType.MedicalGas10Bar => "IconMedicalGas10Bar",
             SensorType.MedicalGasN2O => "IconMedicalGasN2O",
             SensorType.MedicalVacuum => "IconMedicalVacuum",

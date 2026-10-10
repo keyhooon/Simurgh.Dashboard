@@ -7,7 +7,7 @@ namespace Simurgh.Dashboard.Sensors.ViewModels;
 
 /// <summary>
 /// Observable ViewModel wrapping <see cref="MeasurableValueEntity"/> with bidirectional property synchronization,
-/// automated UI presentation formatting, alarm state computation, and event forwarding.
+/// automated UI presentation formatting, alarm state computation, and dynamic segment placeholder calculation.
 /// </summary>
 public sealed partial class MeasurableValueViewModel : ObservableObject, IDisposable
 {
@@ -23,7 +23,7 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
 
     static MeasurableValueViewModel()
     {
-        // Permanently freeze static singletons for cross-thread access and performance optimization
+        // Permanently freeze static singletons for cross-thread access and rendering performance optimization
         if (NormalBrush.CanFreeze) NormalBrush.Freeze();
         if (WarningBrush.CanFreeze) WarningBrush.Freeze();
         if (CriticalBrush.CanFreeze) CriticalBrush.Freeze();
@@ -41,7 +41,7 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
         // Initialize ViewModel properties from Model snapshot
         SyncAllFromModel();
 
-        // Subscribe to Model INotifyPropertyChanged for external/telemetry mutation propagation
+        // Subscribe to Model INotifyPropertyChanged for telemetry mutation propagation
         _model.PropertyChanged += OnModelPropertyChanged;
     }
 
@@ -71,7 +71,17 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
     private string _unit = string.Empty;
 
     [ObservableProperty]
-    private string _valueFormat = "F1";
+    private string _valueFormat = "000.0;-00.0";
+
+    [ObservableProperty]
+    private string _defaultFormattedValue = "---.-";
+
+    /// <summary>
+    /// Seven-segment ghost background mask string (e.g. "888.8" or "888") 
+    /// dynamically calculated based on the positive section of <see cref="ValueFormat"/>.
+    /// </summary>
+    [ObservableProperty]
+    private string _placeholderValue = "888.8";
 
     [ObservableProperty]
     private double? _lowWarningThreshold;
@@ -89,13 +99,13 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
     private Brush _digitBrush = Brushes.Tomato;
 
     [ObservableProperty]
-    private Brush _placeholderBrush = Brushes.DarkBlue;
+    private Brush _placeholderBrush = Brushes.DarkSlateGray;
 
     [ObservableProperty]
-    private double _realValue;
+    private double _realValue = double.NaN;
 
     [ObservableProperty]
-    private string _formattedValue = "--";
+    private string _formattedValue = "---.-";
 
     [ObservableProperty]
     private bool _isInWarning;
@@ -111,7 +121,7 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
     #region UI Presentation Computed Properties
 
     /// <summary>
-    /// Combined display string: e.g. "24.5 °C" or "-- %".
+    /// Combined display string: e.g. "024.5 °C" or "---.- %".
     /// </summary>
     public string DisplayText => string.IsNullOrWhiteSpace(Unit)
         ? FormattedValue
@@ -172,8 +182,17 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
 
     partial void OnValueFormatChanged(string value)
     {
+        // Automatically recalculate ghost segment placeholder mask whenever format changes
+        PlaceholderValue = CalculatePlaceholderValue(value);
+
         if (!_isSyncingFromModel && _model.ValueFormat != value)
             _model.ValueFormat = value;
+    }
+
+    partial void OnDefaultFormattedValueChanged(string value)
+    {
+        if (!_isSyncingFromModel && _model.DefaultFormattedValue != value)
+            _model.DefaultFormattedValue = value;
     }
 
     partial void OnLowWarningThresholdChanged(double? value)
@@ -231,9 +250,7 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
         if (!_isSyncingFromModel && _model.IsInWarning != value)
             _model.IsInWarning = value;
 
-        OnPropertyChanged(nameof(HasAlarm));
-        OnPropertyChanged(nameof(StatusBrush));
-        OnPropertyChanged(nameof(StatusDescription));
+        NotifyAlarmStateChanged();
     }
 
     partial void OnIsInCriticalChanged(bool value)
@@ -241,15 +258,20 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
         if (!_isSyncingFromModel && _model.IsInCritical != value)
             _model.IsInCritical = value;
 
-        OnPropertyChanged(nameof(HasAlarm));
-        OnPropertyChanged(nameof(StatusBrush));
-        OnPropertyChanged(nameof(StatusDescription));
+        NotifyAlarmStateChanged();
     }
 
     partial void OnLastUpdatedChanged(DateTimeOffset value)
     {
         if (!_isSyncingFromModel && _model.LastUpdated != value)
             _model.LastUpdated = value;
+    }
+
+    private void NotifyAlarmStateChanged()
+    {
+        OnPropertyChanged(nameof(HasAlarm));
+        OnPropertyChanged(nameof(StatusBrush));
+        OnPropertyChanged(nameof(StatusDescription));
     }
 
     #endregion
@@ -281,6 +303,10 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
                     break;
                 case nameof(MeasurableValueEntity.ValueFormat):
                     ValueFormat = _model.ValueFormat;
+                    PlaceholderValue = CalculatePlaceholderValue(_model.ValueFormat);
+                    break;
+                case nameof(MeasurableValueEntity.DefaultFormattedValue):
+                    DefaultFormattedValue = _model.DefaultFormattedValue;
                     break;
                 case nameof(MeasurableValueEntity.LowWarningThreshold):
                     LowWarningThreshold = _model.LowWarningThreshold;
@@ -309,15 +335,11 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
                     break;
                 case nameof(MeasurableValueEntity.IsInWarning):
                     IsInWarning = _model.IsInWarning;
-                    OnPropertyChanged(nameof(HasAlarm));
-                    OnPropertyChanged(nameof(StatusBrush));
-                    OnPropertyChanged(nameof(StatusDescription));
+                    NotifyAlarmStateChanged();
                     break;
                 case nameof(MeasurableValueEntity.IsInCritical):
                     IsInCritical = _model.IsInCritical;
-                    OnPropertyChanged(nameof(HasAlarm));
-                    OnPropertyChanged(nameof(StatusBrush));
-                    OnPropertyChanged(nameof(StatusDescription));
+                    NotifyAlarmStateChanged();
                     break;
                 case nameof(MeasurableValueEntity.LastUpdated):
                     LastUpdated = _model.LastUpdated;
@@ -348,6 +370,8 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
             Type = _model.Type;
             Unit = _model.Unit;
             ValueFormat = _model.ValueFormat;
+            DefaultFormattedValue = _model.DefaultFormattedValue;
+            PlaceholderValue = CalculatePlaceholderValue(_model.ValueFormat);
             LowWarningThreshold = _model.LowWarningThreshold;
             HighWarningThreshold = _model.HighWarningThreshold;
             LowCriticalThreshold = _model.LowCriticalThreshold;
@@ -361,14 +385,41 @@ public sealed partial class MeasurableValueViewModel : ObservableObject, IDispos
             LastUpdated = _model.LastUpdated;
 
             OnPropertyChanged(nameof(DisplayText));
-            OnPropertyChanged(nameof(HasAlarm));
-            OnPropertyChanged(nameof(StatusBrush));
-            OnPropertyChanged(nameof(StatusDescription));
+            NotifyAlarmStateChanged();
         }
         finally
         {
             _isSyncingFromModel = false;
         }
+    }
+
+    #endregion
+
+    #region Formatting & Placeholder Calculation Helpers
+
+    /// <summary>
+    /// Calculates the ghost/inactive seven-segment background string (e.g. "888.8" or "888")
+    /// based on the positive pattern section of the format specifier.
+    /// </summary>
+    public static string CalculatePlaceholderValue(string? format)
+    {
+        if (string.IsNullOrWhiteSpace(format))
+        {
+            return "888.8";
+        }
+
+        // Extract positive portion if semicolons exist (e.g. "000.0;-00.0" -> "000.0")
+        var positiveSection = format.Split(';')[0];
+
+        var chars = positiveSection.Select(c => c switch
+        {
+            '0' or '#' => '8',
+            '.' => '.',
+            ',' => ',',
+            _ => c
+        }).ToArray();
+
+        return new string(chars);
     }
 
     #endregion
