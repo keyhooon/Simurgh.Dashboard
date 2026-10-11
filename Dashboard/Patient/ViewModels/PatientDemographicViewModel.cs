@@ -69,6 +69,7 @@ public sealed class PatientDemographicViewModel : ObservableObject, IDisposable
         nameof(HasDemographicVisibility),
         nameof(HasProcedureVisibility),
         nameof(HasClinicalVisibility),
+        nameof(IsClinicalOrProcedureVisible),
         nameof(IsAnyPropertyVisible)
     ];
 
@@ -231,14 +232,16 @@ public sealed class PatientDemographicViewModel : ObservableObject, IDisposable
 
     public bool HasProcedureVisibility =>
         IsProcedureVisible ||
-        IsPhysicianVisible ||
-        IsAccessionNumberVisible;
+        IsPhysicianVisible;
 
     public bool HasClinicalVisibility =>
         IsSpecialNeedsVisible ||
         IsMedicalAlertVisible ||
         IsPatientCommentVisible ||
         IsContrastAllergiesVisible;
+
+    public bool IsClinicalOrProcedureVisible =>
+        HasClinicalVisibility || HasProcedureVisibility;
 
     public bool IsAnyPropertyVisible =>
         HasDemographicVisibility ||

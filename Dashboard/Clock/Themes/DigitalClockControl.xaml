@@ -55,25 +55,27 @@
 
                                 <Grid
                                     MinWidth="450"
-                                    HorizontalAlignment="Center"
+                                    HorizontalAlignment="Stretch"
                                     ClipToBounds="False">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="140" />
                                         <ColumnDefinition Width="1*" />
-                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="140" />
                                     </Grid.ColumnDefinitions>
 
                                     <!--  Ghost clock digits  -->
                                     <TextBlock
                                         Grid.Column="1"
+                                        Grid.ColumnSpan="2"
                                         Padding="4"
                                         FontFamily="{StaticResource FontFamilyDigit}"
-                                        FontSize="120"
+                                        FontSize="140"
                                         FontStretch="UltraExpanded"
                                         FontWeight="ExtraBold"
                                         Foreground="{TemplateBinding PlaceholderBrush}"
+                                        SnapsToDevicePixels="True"
                                         Text="88:88:88"
-                                        TextAlignment="Center"
+                                        TextAlignment="Right"
                                         TextOptions.TextFormattingMode="Display"
                                         TextOptions.TextRenderingMode="ClearType" />
 
@@ -81,24 +83,23 @@
                                     <TextBlock
                                         x:Name="PART_TimeText"
                                         Grid.Column="1"
+                                        Grid.ColumnSpan="2"
                                         Padding="4"
-                                        HorizontalAlignment="Center"
                                         FontFamily="{StaticResource FontFamilyDigit}"
-                                        FontSize="120"
+                                        FontSize="140"
                                         FontStretch="UltraExpanded"
                                         FontWeight="ExtraBold"
                                         Foreground="{TemplateBinding DigitBrush}"
                                         SnapsToDevicePixels="True"
                                         Text="{TemplateBinding TimeText}"
-                                        TextAlignment="Center"
+                                        TextAlignment="Right"
                                         TextOptions.TextFormattingMode="Display"
                                         TextOptions.TextRenderingMode="ClearType" />
 
                                     <!--  Weather badge  -->
                                     <controls:WeatherBadgeControl
-                                        Width="Auto"
                                         Height="Auto"
-                                        HorizontalAlignment="Left"
+                                        HorizontalAlignment="left"
                                         VerticalAlignment="Top"
                                         Background="Transparent"
                                         ConditionIcon="{Binding Path=WeatherState.ConditionIcon, RelativeSource={RelativeSource TemplatedParent}}"

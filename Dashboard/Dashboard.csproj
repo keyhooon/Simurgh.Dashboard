@@ -10,14 +10,14 @@
 		<UseWPF>true</UseWPF>
 
 		<!-- Assembly metadata and versioning -->
-		<Version Condition="'$(Version)' == ''">1.0.11</Version>
+		<Version Condition="'$(Version)' == ''">1.0.12</Version>
 		<Authors>Keyhan Babazadeh</Authors>
 		<Company>Simurgh</Company>
 		<Description>Simurgh Dashboard Client Application</Description>
 
 		<!-- Velopack release orchestration variables -->
 		<VelopackId>Simurgh.Dashboard</VelopackId>
-		<Version>1.0.11</Version>
+		<Version>1.0.12</Version>
 		<!-- Target destination for delta updates, full packages, and releases -->
 		<VelopackReleaseDir Condition="'$(VelopackReleaseDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\Releases'))</VelopackReleaseDir>
 		<BundleOutputDir Condition="'$(BundleOutputDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\Bundles'))</BundleOutputDir>		

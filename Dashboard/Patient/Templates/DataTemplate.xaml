@@ -48,7 +48,8 @@
                 Margin="-10,-5"
                 IsHitTestVisible="False"
                 SliceThickness="60"
-                Source="{StaticResource ImgPanelRoundedRaised}" />
+                Source="{StaticResource ImgPanelRoundedRaised}"
+                Visibility="{Binding IsClinicalOrProcedureVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
             <!--  =========================================================  -->
             <!--  SECTION 1: Header (Sex Icon + Accession + Patient ID)  -->
             <!--  =========================================================  -->

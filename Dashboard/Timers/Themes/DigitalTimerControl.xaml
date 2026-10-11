@@ -223,7 +223,7 @@
                             <Setter TargetName="PART_StateText" Property="Foreground" Value="#4CAF50" />
                             <Setter TargetName="PART_StatusIndicator" Property="Fill" Value="#4CAF50" />
                             <Setter TargetName="PART_StateIcon" Property="Data" Value="{StaticResource IconTimerRunning}" />
-                            <Setter TargetName="PART_StateIcon" Property="Fill" Value="#4CAF50" />
+                            <!--<Setter TargetName="PART_StateIcon" Property="Fill" Value="#4CAF50" />-->
                         </Trigger>
 
                         <Trigger Property="State" Value="{x:Static models:TimerState.Pausing}">
@@ -231,7 +231,7 @@
                             <Setter TargetName="PART_StateText" Property="Foreground" Value="#FFC107" />
                             <Setter TargetName="PART_StatusIndicator" Property="Fill" Value="#FFC107" />
                             <Setter TargetName="PART_StateIcon" Property="Data" Value="{StaticResource IconTimerPause}" />
-                            <Setter TargetName="PART_StateIcon" Property="Fill" Value="#FFC107" />
+                            <!--<Setter TargetName="PART_StateIcon" Property="Fill" Value="#FFC107" />-->
                         </Trigger>
 
                     </ControlTemplate.Triggers>
